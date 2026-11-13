@@ -1,6 +1,8 @@
 Revision history for Wheel
 
 {{$NEXT}}
+
+0.0.1  2026-11-13T22:42:30Z
     - Add lexical exponentiation with bottom propagation and x ** 0 = 1.
     - Preserve exact rational integer powers using exponentiation by squaring.
     - Test power precedence, signed infinities, adapters and both import names.
