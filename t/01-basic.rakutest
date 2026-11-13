@@ -1,0 +1,127 @@
+use v6.d;
+use Test;
+use Wheel;
+
+# Compara valores, inclusive ⊥, preservando a igualdade
+# matemática em vez de depender da representação textual.
+sub wheel-is($got, $expected, Str $description) {
+    ok $got == $expected, $description
+        or diag "Expected: {$expected.gist}; Got: {$got.gist}";
+}
+
+sub wheel-bottom($got, Str $description) {
+    ok $got == ⊥, $description
+        or diag "Expected: ⊥; Got: {$got.gist}";
+}
+
+subtest 'Division by zero' => {
+    for 0, 0.0, 0e0 -> $a {
+        for 0, 0.0, 0e0 -> $b {
+            wheel-bottom $a / $b,
+                "{$a.^name} zero / {$b.^name} zero";
+        }
+    }
+
+    for 1, -1, 2, -2, 1.5, -1.5, 1e0, -1e0 -> $x {
+        for 0, 0.0, 0e0 -> $zero {
+            wheel-is $x / $zero, Inf,
+                "{$x.gist} / {$zero.^name} zero = Inf";
+        }
+    }
+
+    wheel-is Inf / 0, Inf, 'Inf / 0';
+    wheel-is Inf / 0.0, Inf, 'Inf / 0.0';
+    wheel-is Inf / 0e0, Inf, 'Inf / 0e0';
+};
+
+subtest 'Division involving infinity' => {
+    wheel-bottom Inf / Inf, 'Inf / Inf';
+
+    for 1, -1, 2, -2, 1.5, -1.5, 1e0, -1e0 -> $x {
+        wheel-is Inf / $x, Inf, "Inf / {$x.gist}";
+        wheel-is $x / Inf, 0, "{$x.gist} / Inf";
+    }
+
+    wheel-is 0 / Inf, 0, '0 / Inf';
+    wheel-is 0.0 / Inf, 0, '0.0 / Inf';
+    wheel-is 0e0 / Inf, 0, '0e0 / Inf';
+};
+
+subtest 'Multiplication involving infinity' => {
+    for 0, 0.0, 0e0 -> $zero {
+        wheel-bottom $zero * Inf, 'zero * Inf';
+        wheel-bottom Inf * $zero, 'Inf * zero';
+    }
+
+    for 1, -1, 2, -2, 1.5, -1.5, 1e0, -1e0 -> $x {
+        wheel-is $x * Inf, Inf, "{$x.gist} * Inf";
+        wheel-is Inf * $x, Inf, "Inf * {$x.gist}";
+    }
+
+    wheel-is Inf * Inf, Inf, 'Inf * Inf';
+};
+
+subtest 'Addition and subtraction involving infinity' => {
+    wheel-bottom Inf + Inf, 'Inf + Inf';
+    wheel-bottom Inf - Inf, 'Inf - Inf';
+
+    for 0, 1, -1, 2, -2, 1.5, -1.5, 1e0, -1e0 -> $x {
+        wheel-is Inf + $x, Inf, "Inf + {$x.gist}";
+        wheel-is $x + Inf, Inf, "{$x.gist} + Inf";
+        wheel-is Inf - $x, Inf, "Inf - {$x.gist}";
+        wheel-is $x - Inf, Inf, "{$x.gist} - Inf";
+    }
+};
+
+subtest 'Unary operators' => {
+    wheel-is +Inf, Inf, '+Inf';
+    wheel-is -Inf, Inf, '-Inf';
+
+    wheel-bottom +⊥, '+⊥';
+    wheel-bottom -⊥, '-⊥';
+};
+
+subtest 'Bottom is absorbing' => {
+    for 0, 1, -1, 2, -2, 1.5, -1.5, 1e0, -1e0, Inf, ⊥ -> $x {
+        wheel-bottom ⊥ + $x, "⊥ + {$x.gist}";
+        wheel-bottom $x + ⊥, "{$x.gist} + ⊥";
+
+        wheel-bottom ⊥ - $x, "⊥ - {$x.gist}";
+        wheel-bottom $x - ⊥, "{$x.gist} - ⊥";
+
+        wheel-bottom ⊥ * $x, "⊥ * {$x.gist}";
+        wheel-bottom $x * ⊥, "{$x.gist} * ⊥";
+
+        wheel-bottom ⊥ / $x, "⊥ / {$x.gist}";
+        wheel-bottom $x / ⊥, "{$x.gist} / ⊥";
+    }
+};
+
+subtest 'Equality' => {
+    ok Inf == Inf, 'Inf == Inf';
+    ok ⊥ == ⊥, '⊥ == ⊥';
+
+    nok ⊥ == 0, '⊥ != 0';
+    nok 0 == ⊥, '0 != ⊥';
+    nok ⊥ == Inf, '⊥ != Inf';
+    nok Inf == ⊥, 'Inf != ⊥';
+
+    ok ⊥ != 0, '⊥ != 0 using !=';
+    nok ⊥ != ⊥, '⊥ != ⊥ is False';
+};
+
+subtest 'Basic wheel identities' => {
+    for 0, 1, -1, 2, -2, 1.5, 1e0 -> $x {
+        wheel-is $x + 0, $x, 'additive identity';
+        wheel-is $x * 1, $x, 'multiplicative identity';
+        wheel-is $x - $x, 0, 'additive inverse';
+    }
+
+    wheel-bottom 0 * (1 / 0), '0 * (1 / 0) = ⊥';
+    wheel-bottom 0 / 0, '0 / 0 = ⊥';
+
+    wheel-is 1 / (1 / 0), 0, '1 / (1 / 0) = 0';
+    wheel-is 1 / (1 / Inf), Inf, '1 / (1 / Inf) = Inf';
+};
+
+done-testing;

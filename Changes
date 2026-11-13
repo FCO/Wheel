@@ -1,0 +1,23 @@
+Revision history for Wheel
+
+{{$NEXT}}
+    - Add lexical exponentiation with bottom propagation and x ** 0 = 1.
+    - Preserve exact rational integer powers using exponentiation by squaring.
+    - Test power precedence, signed infinities, adapters and both import names.
+    - Normalize Rat and FatRat values with zero denominators.
+    - Replace repetitive multi signatures with one subset and nine lexical operators.
+    - Validate all wheel axioms with an independent integer-pair model.
+    - Exercise mixed numeric types, adapters and isolated package installation.
+    - Keep README generated from the module Pod.
+    - Correct infinity addition and subtraction to return bottom.
+    - Centralize normalization and exact rational arithmetic in Wheel::Kernel.
+    - Support finite complex arithmetic, external signed infinities and NaN.
+    - Export wheel, reciprocal and the WheelConvertible adapter protocol.
+    - Represent bottom as a defined singleton with explicit conversions.
+    - Verify algebraic identities on rational and special values.
+    - Initial implementation of lexically scoped wheel arithmetic.
+    - Export bottom (⊥) and overload arithmetic and numeric equality.
+    - Provide the symbolic module alias use ::('⊙').
+    - Cover division by zero, infinity, negative operands, and bottom.
+    - Test both import names and lexical isolation, including nested scopes.
+    - Document usage, supported numeric types, behavior, and limitations.

@@ -1,0 +1,12 @@
+use v6.d;
+# Resolve both provided names through the checkout's META6.json.
+use lib $?FILE.IO.parent.parent.Str;
+use Test;
+use ::('⊙');
+
+is (0 / 0).gist, '⊥', 'alias exports division by zero';
+ok ⊥ == (0 / 0), 'alias exports bottom';
+ok (-1 * Inf) == Inf, 'negative times infinity';
+ok (Inf * -1) == Inf, 'infinity times negative';
+
+done-testing;

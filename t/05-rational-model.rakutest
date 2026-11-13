@@ -1,0 +1,66 @@
+use v6.d;
+use Test;
+
+# Independent integer-pair oracle, compiled without imported Wheel operators.
+sub key-pair($n, $d) {
+    return $n == 0 ?? 'bottom' !! 'infinity' if $d == 0;
+    my $g = $n gcd $d;
+    my $sign = $d < 0 ?? -1 !! 1;
+    "{$n div $g * $sign}/{$d div $g * $sign}"
+}
+sub key-value($v) {
+    return 'bottom' if $v.^name eq 'Wheel::Kernel::Bottom';
+    return 'infinity' if $v ~~ Num && $v == Inf;
+    return key-pair($v, 1) if $v ~~ Int;
+    return key-pair($v.numerator, $v.denominator) if $v ~~ Rat|FatRat;
+    die "Unexpected exact result type: {$v.^name}";
+}
+sub oracle($op, @a, @b) {
+    my ($n,$d) = @a; my ($m,$e) = @b;
+    given $op {
+        when '+' { key-pair($n*$e+$m*$d, $d*$e) }
+        when '-' { key-pair($n*$e-$m*$d, $d*$e) }
+        when '*' { key-pair($n*$m, $d*$e) }
+        when '/' { key-pair($n*$e, $d*$m) }
+    }
+}
+{
+    use Wheel;
+    my @pairs = [-3,1], [-1,3], [0,1], [1,2], [1,1], [7,3], [1,0], [0,0];
+    my @values = -3, FatRat.new(-1,3), 0, FatRat.new(1,2), 1, FatRat.new(7,3), Inf, ⊥;
+    for @values.kv -> $i,$x {
+        is key-value(reciprocal($x)), key-pair(@pairs[$i][1], @pairs[$i][0]), 'reciprocal matches integer-pair model';
+        is key-value($x+0), key-value($x), 'axiom 1 identity';
+        is key-value($x*1), key-value($x), 'axiom 2 identity';
+        is key-value(reciprocal(reciprocal($x))), key-value($x), 'axiom 2 involution';
+        for @values.kv -> $j,$y {
+            is key-value($x+$y), key-value($y+$x), 'axiom 1 commutativity';
+            is key-value($x*$y), key-value($y*$x), 'axiom 2 commutativity';
+            is key-value(reciprocal($x*$y)), key-value(reciprocal($x)*reciprocal($y)), 'axiom 2 reciprocal product';
+            is key-value($x+$y), oracle('+',@pairs[$i],@pairs[$j]), 'addition model';
+            is key-value($x-$y), oracle('-',@pairs[$i],@pairs[$j]), 'subtraction model';
+            is key-value($x*$y), oracle('*',@pairs[$i],@pairs[$j]), 'multiplication model';
+            is key-value($x/$y), oracle('/',@pairs[$i],@pairs[$j]), 'division model';
+            is ($x == $y), key-value($x) eq key-value($y), 'independent equality';
+            is ($x != $y), key-value($x) ne key-value($y), 'independent inequality';
+            is key-value(reciprocal($x + 0*$y)), key-value(reciprocal($x) + 0*$y), 'axiom 7';
+            for @values -> $z {
+                is key-value(($x+$y)+$z), key-value($x+($y+$z)), 'axiom 1 associativity';
+                is key-value(($x*$y)*$z), key-value($x*($y*$z)), 'axiom 2 associativity';
+                is key-value(($x+$y)*$z+0*$z), key-value($x*$z+$y*$z), 'axiom 3';
+                is key-value($x/$y + $z + 0*$y), key-value(($x+$y*$z)/$y), 'axiom 4';
+                is key-value(($x+0*$y)*$z), key-value($x*$z+0*$y), 'axiom 6';
+            }
+        }
+        is key-value($x + 0/0), 'bottom', 'axiom 8';
+    }
+    is key-value(0*0), '0/1', 'axiom 5';
+    for Rat, FatRat -> $type {
+        for -1,0,1 -> $n {
+            my $v = $type.new($n,0);
+            is key-value(wheel($v)), $n == 0 ?? 'bottom' !! 'infinity', 'zero denominator normalized';
+            is key-value(1/$v), $n == 0 ?? 'bottom' !! '0/1', 'zero denominator reciprocal';
+        }
+    }
+}
+done-testing;

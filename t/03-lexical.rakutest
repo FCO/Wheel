@@ -1,0 +1,58 @@
+use v6.d;
+# Resolve both provided names through the checkout's META6.json.
+use lib $?FILE.IO.parent.parent.Str;
+use Test;
+
+# This helper is compiled outside every importing scope.
+sub native-arithmetic(Str $scope) {
+    is -1 * Inf, -Inf, "$scope: negative times infinity stays native";
+    is Inf * -1, -Inf, "$scope: infinity times negative stays native";
+    throws-like { 0e0 / 0e0 }, X::Numeric::DivideByZero,
+        "$scope: zero divided by zero keeps its native exception";
+}
+
+native-arithmetic 'before imports';
+
+{
+    use Wheel;
+
+    ok (-1 * Inf) == Inf, 'Wheel applies inside its block';
+    ok (Inf * -1) == Inf, 'Wheel applies in the reverse order';
+    ok (0e0 / 0e0) == ⊥, 'Wheel exports bottom inside its block';
+    {
+        ok (-1 * Inf) == Inf, 'nested block inherits Wheel operators';
+        ok (0e0 / 0e0) == ⊥, 'nested block inherits Wheel bottom';
+    }
+    native-arithmetic 'outer helper called inside Wheel block';
+}
+
+is -1 * Inf, -Inf, 'Wheel does not leak into the enclosing scope';
+{
+    is Inf * -1, -Inf, 'Wheel does not leak into a sibling block';
+    throws-like { 0e0 / 0e0 }, X::Numeric::DivideByZero,
+        'sibling division remains native';
+}
+
+{
+    use ::('⊙');
+
+    ok (-1 * Inf) == Inf, 'alias applies inside its block';
+    ok (Inf * -1) == Inf, 'alias applies in the reverse order';
+    ok (0e0 / 0e0) == ⊥, 'alias exports bottom inside its block';
+    {
+        ok (-1 * Inf) == Inf, 'nested block inherits alias operators';
+        ok (0e0 / 0e0) == ⊥, 'nested block inherits alias bottom';
+    }
+    native-arithmetic 'outer helper called inside alias block';
+}
+
+is -1 * Inf, -Inf, 'alias does not leak into the enclosing scope';
+{
+    is Inf * -1, -Inf, 'alias does not leak into a sibling block';
+    throws-like { 0e0 / 0e0 }, X::Numeric::DivideByZero,
+        'division after alias remains native';
+}
+
+native-arithmetic 'after imports';
+
+done-testing;

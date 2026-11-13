@@ -1,0 +1,53 @@
+use v6.d;
+use lib $?FILE.IO.parent.parent.Str;
+use Test;
+
+my $nan = NaN;
+my $negative-infinity = -Inf;
+sub fraction-parts($x) { ($x.numerator.Str, $x.denominator.Str).List }
+sub native-third { 3 ** -1 }
+{
+    use Wheel;
+    ok (2 ** (0/0)) === ⊥, 'bottom exponent regression';
+    ok (2 ** $nan) === ⊥, 'external NaN exponent';
+    ok (⊥ ** 2) === ⊥, 'bottom base';
+    ok (⊥ ** -1) === ⊥, 'negative power of bottom';
+    ok (⊥ ** ⊥) === ⊥, 'bottom exponent takes priority';
+    for 0, 2, Inf, $negative-infinity, ⊥, $nan -> $x {
+        is $x ** 0, 1, 'zero exponent is empty product';
+    }
+    is 2 ** 10, 1024, 'positive integer power';
+    is (-2) ** 3, -8, 'odd negative-base power';
+    is (-2) ** 4, 16, 'even negative-base power';
+    is 2 ** 3 ** 2, 512, 'right associativity';
+    is -2 ** 2, -4, 'prefix precedence';
+    is-deeply fraction-parts(3 ** -2), ('1','9').List, 'negative integer power stays exact';
+    is-deeply fraction-parts(FatRat.new(2,3) ** 3), ('8','27').List, 'rational positive power';
+    is-deeply fraction-parts(FatRat.new(2,3) ** -3), ('27','8').List, 'rational negative power';
+    is-deeply fraction-parts(2 ** -100), ('1','1267650600228229401496703205376').List, 'large exact denominator';
+    ok (0 ** -1) == Inf, 'negative power of zero';
+    ok (Inf ** 3) == Inf, 'positive power of infinity';
+    is Inf ** -3, 0, 'negative power of infinity';
+    ok ($negative-infinity ** 3) == Inf, 'external signed infinity';
+    is 3 ** 2e0, 9, 'integral Num exponent';
+    is 3 ** Complex.new(2,0), 9, 'integral complex exponent';
+    is-approx 9 ** 0.5, 3, 'nonintegral exponent';
+    is (1+1i) ** 2, 0+2i, 'complex integer power';
+    ok (2 ** Inf) == Inf, 'infinite exponent uses native extension';
+    is 2 ** $negative-infinity, Inf, 'negative infinity exponent is normalized unsigned';
+    class Adapter does Numeric does WheelConvertible {
+        has $.value;
+        method wheel-value { $!value }
+    }
+    is Adapter.new(value=>2) ** Adapter.new(value=>10), 1024, 'both operands adapt';
+    ok (2 ** Adapter.new(value=>NaN)) === ⊥, 'adapted bottom exponent';
+    ok native-third() ~~ Rat, 'outer function keeps native power';
+}
+ok native-third() ~~ Rat, 'native power outside importing scope';
+{
+    use ::('⊙');
+    ok (2 ** (0/0)) === ⊥, 'alias exports power';
+    is 2 ** 3 ** 2, 512, 'alias preserves precedence';
+    is-deeply fraction-parts(3 ** -2), ('1','9').List, 'alias exact negative power';
+}
+done-testing;

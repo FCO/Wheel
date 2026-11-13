@@ -1,0 +1,50 @@
+use v6.d;
+use Test;
+sub components($x) { $x ~~ Complex ?? ($x.re, $x.im).List !! ($x.Num, 0e0).List }
+sub native($op, $x, $y) {
+    given $op {
+        when '+' { $x+$y }; when '-' { $x-$y };
+        when '*' { $x*$y }; when '/' { $x/$y };
+    }
+}
+{
+    use Wheel;
+    class Adapter does Numeric does WheelConvertible {
+        has $.value;
+        method wheel-value { $!value }
+    }
+    my @values = 2, Rat.new(5,2), FatRat.new(7,2), 4e0, Complex.new(2,1);
+    for @values -> $x {
+        for @values -> $y {
+            for '+','-','*','/' -> $op {
+                my &operation = do given $op {
+                    when '+' { -> $a,$b { $a+$b } }; when '-' { -> $a,$b { $a-$b } };
+                    when '*' { -> $a,$b { $a*$b } }; when '/' { -> $a,$b { $a/$b } };
+                };
+                my @expected = components(native($op,$x,$y));
+                for [$x,$y], [Adapter.new(value=>$x),$y], [$x,Adapter.new(value=>$y)] -> @args {
+                    my @actual = components(operation(|@args));
+                    is-approx @actual[0], @expected[0], "$op real component";
+                    is-approx @actual[1], @expected[1], "$op imaginary component";
+                }
+            }
+        }
+    }
+    class BadAdapter does Numeric does WheelConvertible {
+        has $.value;
+        method wheel-value { $!value }
+    }
+    for Int, 'invalid', Nil, Adapter.new(value=>1) -> $bad {
+        throws-like { wheel(BadAdapter.new(value=>$bad)) }, Exception, 'invalid adapter result rejected';
+    }
+    for '1', Int, Nil -> $bad {
+        throws-like { wheel($bad) }, Exception, 'invalid input rejected';
+    }
+    for Rat, FatRat -> $type {
+        for -1,0,1 -> $n {
+            my $x = Adapter.new(value=>$type.new($n,0));
+            ok wheel($x) === ($n == 0 ?? ⊥ !! Inf), 'adapter nonfinite normalizes';
+        }
+    }
+}
+done-testing;

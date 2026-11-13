@@ -1,0 +1,31 @@
+{
+  "auth": "zef:FCO",
+  "authors": [
+    "Fernando Correa de Oliveira"
+  ],
+  "build-depends": [
+  ],
+  "depends": [
+  ],
+  "description": "Lexically scoped arithmetic with infinity and bottom for Raku.",
+  "license": "Artistic-2.0",
+  "name": "Wheel",
+  "perl": "6.d",
+  "provides": {
+    "Wheel": "lib/Wheel.rakumod",
+    "Wheel::Kernel": "lib/Wheel/Kernel.rakumod",
+    "⊙": "lib/Wheel.rakumod"
+  },
+  "resources": [
+  ],
+  "source-url": "https://github.com/FCO/Wheel.git",
+  "tags": [
+    "mathematics",
+    "arithmetic",
+    "wheel",
+    "infinity"
+  ],
+  "test-depends": [
+  ],
+  "version": "0.0.1"
+}

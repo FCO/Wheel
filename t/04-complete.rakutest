@@ -1,0 +1,49 @@
+use Test;
+my $negative-infinity = -Inf;
+my $nan = NaN;
+{
+    use Wheel;
+    ok wheel($negative-infinity) == Inf, 'external negative infinity normalizes';
+    ok wheel($nan) == ⊥, 'NaN normalizes';
+    ok wheel($nan) === ⊥, 'bottom is singleton';
+    ok ⊥.defined, 'bottom is an instance';
+    ok ⊥.Num.isNaN, 'Num conversion';
+    throws-like { ⊥.Int }, Exception, 'Int conversion rejected';
+    throws-like { ⊥.Rat }, Exception, 'Rat conversion rejected';
+    throws-like { ⊥.FatRat }, Exception, 'FatRat conversion rejected';
+    ok (Inf + Inf) == ⊥, 'infinity sum';
+    ok (Inf - Inf) == ⊥, 'infinity difference';
+    ok (1 + $nan) == ⊥, 'NaN propagates';
+    ok ($negative-infinity * -2) == Inf, 'negative infinity operand';
+    ok ((1+2i) / 0) == Inf, 'complex division by zero';
+    ok ((0+0i) / 0) == ⊥, 'complex zero';
+    ok wheel(Complex.new(Inf,0)) == Inf, 'complex infinity';
+    ok wheel(Complex.new(0,NaN)) == ⊥, 'complex NaN';
+    is (1+2i) * (3+4i), -5+10i, 'finite complex arithmetic';
+    my $huge = 2 ** 100;
+    ok (1 / $huge) ~~ FatRat, 'large denominator stays exact';
+    ok (1 / $huge) * $huge == 1, 'large rational roundtrip';
+    class Wrapped does Numeric does WheelConvertible { method wheel-value { FatRat.new(1,3) } }
+    ok Wrapped.new + Wrapped.new == FatRat.new(2,3), 'custom conversion';
+    class Invalid does Numeric does WheelConvertible { method wheel-value { 'wrong' } }
+    throws-like { wheel(Invalid.new) }, Exception, 'invalid adapter rejected';
+    class Unsupported does Numeric { }
+    throws-like { wheel(Unsupported.new) }, Exception, 'unsupported numeric rejected';
+    my @values = -2, FatRat.new(-1,3), 0, FatRat.new(1,2), 1, Inf, ⊥;
+    for @values -> $x {
+        ok reciprocal(reciprocal($x)) == $x, 'reciprocal involution';
+        ok $x + 0 == $x, 'additive identity';
+        ok $x * 1 == $x, 'multiplicative identity';
+        for @values -> $y {
+            ok $x + $y == $y + $x, 'addition commutes';
+            ok $x * $y == $y * $x, 'multiplication commutes';
+            ok reciprocal($x * $y) == reciprocal($x) * reciprocal($y), 'reciprocal product';
+            for @values -> $z {
+                ok ($x + $y) + $z == $x + ($y + $z), 'addition associates';
+                ok ($x * $y) * $z == $x * ($y * $z), 'multiplication associates';
+                ok ($x + $y) * $z + 0 * $z == $x * $z + $y * $z, 'modified distributivity';
+            }
+        }
+    }
+}
+done-testing;
